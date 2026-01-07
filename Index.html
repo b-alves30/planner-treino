@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta charset="UTF-8">
+  <title>Planner de Treino & Diário de Performance</title>
+
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --success: #22c55e;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 5px;
+    }
+
+    p.subtitle {
+      text-align: center;
+      color: var(--muted);
+      margin-bottom: 30px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    input, select, textarea {
+      width: 100%;
+      margin-top: 5px;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      background: #020617;
+      color: var(--text);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent);
+      color: #020617;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .history {
+      max-height: 520px;
+      overflow-y: auto;
+    }
+
+    .entry {
+      background: #020617;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-left: 4px solid var(--accent);
+    }
+
+    .entry strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .entry span {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .note {
+      margin-top: 5px;
+      color: var(--success);
+      font-weight: bold;
+    }
+
+    .delete-btn {
+      margin-top: 10px;
+      padding: 6px 10px;
+      font-size: 13px;
+      background: var(--danger);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      width: auto;
+    }
+
+    .delete-btn:hover {
+      opacity: 0.85;
+    }
+
+    @media (max-width: 800px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Planner de Treino</h1>
+  <p class="subtitle">Organização • Disciplina • Evolução</p>
+
+  <div class="container">
+
+    <!-- FORMULÁRIO -->
+    <div class="card">
+      <h2>Novo Treino</h2>
+
+      <label>Dia da semana</label>
+      <select id="day">
+        <option>Segunda</option>
+        <option>Terça</option>
+        <option>Quarta</option>
+        <option>Quinta</option>
+        <option>Sexta</option>
+        <option>Sábado</option>
+        <option>Domingo</option>
+      </select>
+
+      <label>Tipo de treino</label>
+      <select id="type">
+        <option>Técnico</option>
+        <option>Físico</option>
+        <option>Jogo</option>
+        <option>Descanso</option>
+      </select>
+
+      <label>Observações pós-treino</label>
+      <textarea id="notes" placeholder="Ex: bom rendimento, preciso melhorar finalizações..."></textarea>
+
+      <label>Nota do treino (1 a 10)</label>
+      <input type="number" id="rating" min="1" max="10">
+
+      <button onclick="saveTraining()">Salvar Treino</button>
+    </div>
+
+    <!-- HISTÓRICO -->
+    <div class="card history">
+      <h2>Histórico</h2>
+      <div id="history"></div>
+    </div>
+
+  </div>
+
+  <script>
+    const historyDiv = document.getElementById("history");
+
+    function loadTrainings() {
+      const data = JSON.parse(localStorage.getItem("trainings")) || [];
+      historyDiv.innerHTML = "";
+
+      data.slice().reverse().forEach((entry, index) => {
+        const realIndex = data.length - 1 - index;
+
+        const div = document.createElement("div");
+        div.className = "entry";
+        div.innerHTML = `
+          <strong>${entry.day} • ${entry.type}</strong>
+          <span>${entry.date}</span>
+          <p>${entry.notes || "Sem observações"}</p>
+          <div class="note">Nota: ${entry.rating}/10</div>
+          <button class="delete-btn" onclick="deleteTraining(${realIndex})">
+            🗑 Excluir
+          </button>
+        `;
+        historyDiv.appendChild(div);
+      });
+    }
+
+    function saveTraining() {
+      const day = document.getElementById("day").value;
+      const type = document.getElementById("type").value;
+      const notes = document.getElementById("notes").value;
+      const rating = document.getElementById("rating").value;
+
+      if (!rating || rating < 1 || rating > 10) {
+        alert("Digite uma nota válida entre 1 e 10.");
+        return;
+      }
+
+      const training = {
+        day,
+        type,
+        notes,
+        rating,
+        date: new Date().toLocaleDateString("pt-BR")
+      };
+
+      const data = JSON.parse(localStorage.getItem("trainings")) || [];
+      data.push(training);
+      localStorage.setItem("trainings", JSON.stringify(data));
+
+      document.getElementById("notes").value = "";
+      document.getElementById("rating").value = "";
+
+      loadTrainings();
+    }
+
+    function deleteTraining(index) {
+      const confirmDelete = confirm("Tem certeza que deseja excluir este treino?");
+      if (!confirmDelete) return;
+
+      const data = JSON.parse(localStorage.getItem("trainings")) || [];
+      data.splice(index, 1);
+      localStorage.setItem("trainings", JSON.stringify(data));
+
+      loadTrainings();
+    }
+
+    loadTrainings();
+  </script>
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js");
+  }
+</script>
+</body>
+</html>
